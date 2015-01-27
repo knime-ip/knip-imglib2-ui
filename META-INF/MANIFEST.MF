@@ -1,0 +1,22 @@
+Manifest-Version: 1.0
+Bundle-SymbolicName: org.knime.knip.imglib2ui;singleton:=true
+Bundle-ManifestVersion: 2
+Bundle-Version: 1.0.1.qualifier
+Eclipse-RegisterBuddy: org.knime.knip.imagej2.core, org.knime.knip.scijava
+Require-Bundle: org.knime.workbench.repository;bundle-version="[2.10.0,3.0.0)",
+ org.apache.log4j;bundle-version="1.2.15",
+ org.eclipse.core.runtime,
+ org.eclipse.ui,
+ org.knime.knip.base;bundle-version="[1.2.0,2.0.0)",
+ org.knime.knip.core;bundle-version="[1.2.0,2.0.0)",
+ org.knime.knip.imagej2.core;bundle-version="[0.9.0,0.10.0)",
+ org.knime.core;bundle-version="[2.10.0,3.0.0)",
+ org.knime.knip.scijava;bundle-version="2.35.0"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-ClassPath: .,
+ lib/imglib2-ui-2.0.0-beta-28.jar,
+ lib/spim_data-1.0.0-beta-3-SNAPSHOT.jar,
+ lib/jdom2-2.0.5.jar,
+ lib/gson-2.2.4.jar,
+ lib/jhdf5-13.06.2.jar,
+ lib/bigdataviewer-core-1.0.0-SNAPSHOT.jar
