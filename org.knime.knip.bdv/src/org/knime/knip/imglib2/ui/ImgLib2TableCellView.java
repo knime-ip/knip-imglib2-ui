@@ -8,12 +8,12 @@ import java.awt.event.KeyEvent;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
-import net.imglib2.AnnotatedSpace;
+import net.imagej.ImgPlus;
+import net.imagej.axis.LinearAxis;
+import net.imagej.space.AnnotatedSpace;
 import net.imglib2.RandomAccessible;
 import net.imglib2.concatenate.Concatenable;
 import net.imglib2.converter.RealARGBConverter;
-import net.imglib2.meta.ImgPlus;
-import net.imglib2.meta.axis.LinearAxis;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineSet;
 import net.imglib2.realtransform.AffineTransform3D;
