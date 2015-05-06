@@ -14,5 +14,10 @@
             factory-class="org.knime.knip.bdv.BdvReaderNodeFactory"
             id="org.knime.knip.bdv.BdvReaderNodeFactory">
       </node>
+      <node
+            expert-flag="false"
+            factory-class="org.knime.knip.bdv.node.BDVNodeFactory"
+            id="org.knime.knip.bdv.node.BDVNodeFactory">
+      </node>
    </extension>
 </plugin>

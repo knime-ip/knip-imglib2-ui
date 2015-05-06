@@ -164,7 +164,6 @@ public class ImgLib2TableCellView<T extends RealType<T>> implements TableCellVie
 	private static double[] getcalib(final AnnotatedSpace<? extends LinearAxis> calib)
 	{
 		final double[] c = new double[calib.numDimensions()];
-		System.out.println( "unit = " + calib.axis(0).unit() );
 		for (int d = 0; d < c.length; ++d)
 			c[d] = calib.axis(d).scale();
 		return c;
