@@ -5,9 +5,9 @@ import java.io.IOException;
 
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import mpicbg.spim.data.sequence.ViewId;
+import net.imagej.ImgPlus;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.ImgView;
-import net.imglib2.meta.ImgPlus;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Util;
