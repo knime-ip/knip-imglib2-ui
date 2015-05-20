@@ -6,6 +6,9 @@
       <TableCellView
             TableCellViewFactory="org.knime.knip.imglib2.ui.ImgLib2Viewer">
       </TableCellView>
+      <TableCellView
+            TableCellViewFactory="org.knime.knip.bdv.BdvViewer">
+      </TableCellView>
    </extension>
    <extension
          point="org.knime.workbench.repository.nodes">

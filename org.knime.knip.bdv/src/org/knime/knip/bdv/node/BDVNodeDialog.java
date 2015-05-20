@@ -4,7 +4,7 @@ import org.knime.core.node.defaultnodesettings.DefaultNodeSettingsPane;
 import org.knime.core.node.defaultnodesettings.DialogComponentColumnNameSelection;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.knip.base.data.img.ImgPlusValue;
-import org.knime.knip.base.data.labeling.LabelingValue;
+import org.knime.knip.base.data.labeling.ImgLabelingValue;
 
 public class BDVNodeDialog extends DefaultNodeSettingsPane {
 
@@ -18,6 +18,6 @@ public class BDVNodeDialog extends DefaultNodeSettingsPane {
 
 		addDialogComponent(new DialogComponentColumnNameSelection(
 				new SettingsModelString(BDVNodeModel.CFG_LABELING_COL,
-						""), "Labeling Column", 0, true, LabelingValue.class));
+						""), "Labeling Column", 0, true, ImgLabelingValue.class));
 	}
 }
