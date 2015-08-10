@@ -52,8 +52,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
-import net.imglib2.type.numeric.RealType;
-
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
@@ -75,9 +73,11 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.core.node.tableview.TableContentModel;
 import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusValue;
-import org.knime.knip.base.data.labeling.ImgLabelingCell;
-import org.knime.knip.base.data.labeling.ImgLabelingValue;
+import org.knime.knip.base.data.labeling.LabelingCell;
+import org.knime.knip.base.data.labeling.LabelingValue;
 import org.knime.knip.base.node.NodeUtils;
+
+import net.imglib2.type.numeric.RealType;
 
 /**
  *
@@ -86,8 +86,8 @@ import org.knime.knip.base.node.NodeUtils;
  * @author <a href="mailto:michael.zinsmaier@googlemail.com">Michael
  *         Zinsmaier</a>
  */
-public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
-		extends NodeModel implements BufferedDataTableHolder {
+public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>> extends NodeModel
+		implements BufferedDataTableHolder {
 
 	private class ClearableTableContentModel extends TableContentModel {
 		/** */
@@ -110,16 +110,13 @@ public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
 	/*
 	 * Logging
 	 */
-	private static final NodeLogger LOGGER = NodeLogger
-			.getLogger(BDVNodeModel.class);
+	private static final NodeLogger LOGGER = NodeLogger.getLogger(BDVNodeModel.class);
 
 	private ClearableTableContentModel m_contentModel;
 
-	private final SettingsModelString m_imgCol = new SettingsModelString(
-			CFG_IMG_COL, "");
+	private final SettingsModelString m_imgCol = new SettingsModelString(CFG_IMG_COL, "");
 
-	private final SettingsModelString m_labelingCol = new SettingsModelString(
-			CFG_LABELING_COL, "");
+	private final SettingsModelString m_labelingCol = new SettingsModelString(CFG_LABELING_COL, "");
 
 	private BufferedDataTable m_imgTable;
 
@@ -135,21 +132,16 @@ public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected DataTableSpec[] configure(final DataTableSpec[] inSpecs)
-			throws InvalidSettingsException {
+	protected DataTableSpec[] configure(final DataTableSpec[] inSpecs) throws InvalidSettingsException {
 
 		if (m_labelingCol.getStringValue() != null) {
-			NodeUtils.autoColumnSelection(inSpecs[0], m_labelingCol,
-					ImgLabelingValue.class, this.getClass());
+			NodeUtils.autoColumnSelection(inSpecs[0], m_labelingCol, LabelingValue.class, this.getClass());
 		}
 
-		if (m_imgCol.getStringValue() == null
-				|| m_imgCol.getStringValue().length() == 0) {
-			NodeUtils.autoOptionalColumnSelection(inSpecs[0], m_imgCol,
-					ImgPlusValue.class);
+		if (m_imgCol.getStringValue() == null || m_imgCol.getStringValue().length() == 0) {
+			NodeUtils.autoOptionalColumnSelection(inSpecs[0], m_imgCol, ImgPlusValue.class);
 		} else {
-			NodeUtils.silentOptionalAutoColumnSelection(inSpecs[0], m_imgCol,
-					ImgPlusValue.class);
+			NodeUtils.silentOptionalAutoColumnSelection(inSpecs[0], m_imgCol, ImgPlusValue.class);
 		}
 
 		return new DataTableSpec[0];
@@ -159,8 +151,8 @@ public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected BufferedDataTable[] execute(final BufferedDataTable[] inData,
-			final ExecutionContext exec) throws Exception {
+	protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec)
+			throws Exception {
 
 		m_imgTable = inData[0];
 		m_imgTable = inData[0];
@@ -168,25 +160,22 @@ public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
 		m_isDataSetToModel = true;
 
 		int imgColIdx = -1;
-		if (m_imgCol.getStringValue() == null
-				|| m_imgCol.getStringValue().length() == 0) {
-			imgColIdx = NodeUtils.autoOptionalColumnSelection(
-					inData[0].getDataTableSpec(), m_imgCol, ImgPlusValue.class);
+		if (m_imgCol.getStringValue() == null || m_imgCol.getStringValue().length() == 0) {
+			imgColIdx = NodeUtils.autoOptionalColumnSelection(inData[0].getDataTableSpec(), m_imgCol,
+					ImgPlusValue.class);
 		} else {
-			imgColIdx = NodeUtils.silentOptionalAutoColumnSelection(
-					inData[0].getDataTableSpec(), m_imgCol, ImgPlusValue.class);
+			imgColIdx = NodeUtils.silentOptionalAutoColumnSelection(inData[0].getDataTableSpec(), m_imgCol,
+					ImgPlusValue.class);
 		}
 
 		int labelingColIdx = -1;
 		if (m_labelingCol.getStringValue() != null) {
-			labelingColIdx = NodeUtils.autoColumnSelection(
-					inData[0].getDataTableSpec(), m_labelingCol,
-					ImgLabelingValue.class, this.getClass());
+			labelingColIdx = NodeUtils.autoColumnSelection(inData[0].getDataTableSpec(), m_labelingCol,
+					LabelingValue.class, this.getClass());
 		}
 
-		DataTableSpec spec = new DataTableSpec(DataTableSpec.createColumnSpecs(
-				new String[] { "Image", "Labeling" }, new DataType[] {
-						ImgPlusCell.TYPE, ImgLabelingCell.TYPE }));
+		DataTableSpec spec = new DataTableSpec(DataTableSpec.createColumnSpecs(new String[] { "Image", "Labeling" },
+				new DataType[] { ImgPlusCell.TYPE, LabelingCell.TYPE }));
 
 		final BufferedDataContainer con = exec.createDataContainer(spec);
 		final RowIterator imgIt = m_imgTable.iterator();
@@ -203,36 +192,31 @@ public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
 
 			// load
 			final DataCell labCell = row.getCell(labelingColIdx);
-			final DataCell imgCell = imgColIdx != -1 ? row.getCell(imgColIdx)
-					: null;
+			final DataCell imgCell = imgColIdx != -1 ? row.getCell(imgColIdx) : null;
 
 			// test for missing cells
-			if (labCell.isMissing()
-					|| ((imgColIdx != -1) && imgCell.isMissing())) {
+			if (labCell.isMissing() || ((imgColIdx != -1) && imgCell.isMissing())) {
 				LOGGER.warn("Missing cell was ignored at row " + row.getKey());
 			} else {
 				// process
 				if (imgColIdx != -1) {
 					// check compatibility
-					long[] labelingDims = ((ImgLabelingValue<L>) labCell)
-							.getDimensions();
-					long[] imageDims = ((ImgPlusValue<T>) imgCell)
-							.getDimensions();
+					long[] labelingDims = ((LabelingValue<L>) labCell).getDimensions();
+					long[] imageDims = ((ImgPlusValue<T>) imgCell).getDimensions();
 
 					if (labelingDims.length != imageDims.length) {
-						setWarningMessage("The number of dimensions of some labelings and images. Rows have been skipped!");
-						LOGGER.warn("The dimensions are not compatible in row "
-								+ row.getKey());
+						setWarningMessage(
+								"The number of dimensions of some labelings and images. Rows have been skipped!");
+						LOGGER.warn("The dimensions are not compatible in row " + row.getKey());
 						continue;
 					}
 					if (!Arrays.equals(labelingDims, imageDims)) {
-						setWarningMessage("Some labelings and images do not have compatible sizes and have been skipped! Use the 'Virtually extend'-option to overcome this problem.");
-						LOGGER.warn("The dimension sizes are not compatible in row "
-								+ row.getKey());
+						setWarningMessage(
+								"Some labelings and images do not have compatible sizes and have been skipped! Use the 'Virtually extend'-option to overcome this problem.");
+						LOGGER.warn("The dimension sizes are not compatible in row " + row.getKey());
 						continue;
 					}
-					con.addRowToTable(new DefaultRow(row.getKey(), imgCell,
-							labCell));
+					con.addRowToTable(new DefaultRow(row.getKey(), imgCell, labCell));
 				} else {
 					con.addRowToTable(new DefaultRow(row.getKey(), labCell));
 				}
@@ -255,8 +239,7 @@ public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
 	@Override
 	public BufferedDataTable[] getInternalTables() {
 
-		return new BufferedDataTable[] { (BufferedDataTable) m_contentModel
-				.getDataTable() };
+		return new BufferedDataTable[] { (BufferedDataTable) m_contentModel.getDataTable() };
 	}
 
 	public TableContentModel getTableContentModel() {
@@ -272,9 +255,8 @@ public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void loadInternals(final File nodeInternDir,
-			final ExecutionMonitor exec) throws IOException,
-			CanceledExecutionException {
+	protected void loadInternals(final File nodeInternDir, final ExecutionMonitor exec)
+			throws IOException, CanceledExecutionException {
 		//
 	}
 
@@ -282,8 +264,7 @@ public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void loadValidatedSettingsFrom(final NodeSettingsRO settings)
-			throws InvalidSettingsException {
+	protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
 		m_imgCol.loadSettingsFrom(settings);
 		m_labelingCol.loadSettingsFrom(settings);
 	}
@@ -302,9 +283,8 @@ public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void saveInternals(final File nodeInternDir,
-			final ExecutionMonitor exec) throws IOException,
-			CanceledExecutionException {
+	protected void saveInternals(final File nodeInternDir, final ExecutionMonitor exec)
+			throws IOException, CanceledExecutionException {
 		//
 	}
 
@@ -339,8 +319,7 @@ public class BDVNodeModel<T extends RealType<T>, L extends Comparable<L>>
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void validateSettings(final NodeSettingsRO settings)
-			throws InvalidSettingsException {
+	protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
 		m_imgCol.validateSettings(settings);
 		m_labelingCol.validateSettings(settings);
 	}

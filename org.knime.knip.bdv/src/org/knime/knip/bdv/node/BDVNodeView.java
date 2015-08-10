@@ -61,6 +61,13 @@ import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import org.knime.core.node.NodeLogger;
+import org.knime.core.node.NodeView;
+import org.knime.core.node.tableview.TableContentView;
+import org.knime.core.node.tableview.TableView;
+import org.knime.knip.base.data.img.ImgPlusValue;
+import org.knime.knip.base.data.labeling.LabelingValue;
+
 import net.imagej.ImgPlus;
 import net.imagej.axis.LinearAxis;
 import net.imagej.space.AnnotatedSpace;
@@ -69,6 +76,7 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.converter.RealARGBConverter;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.roi.labeling.ImgLabeling;
+import net.imglib2.roi.labeling.LabelingType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.ui.AffineTransformType3D;
@@ -79,13 +87,6 @@ import net.imglib2.ui.util.Defaults;
 import net.imglib2.ui.util.InterpolatingSource;
 import net.imglib2.view.Views;
 
-import org.knime.core.node.NodeLogger;
-import org.knime.core.node.NodeView;
-import org.knime.core.node.tableview.TableContentView;
-import org.knime.core.node.tableview.TableView;
-import org.knime.knip.base.data.img.ImgPlusValue;
-import org.knime.knip.base.data.labeling.ImgLabelingValue;
-
 /**
  *
  * @author <a href="mailto:dietzc85@googlemail.com">Christian Dietz</a>
@@ -94,7 +95,7 @@ import org.knime.knip.base.data.labeling.ImgLabelingValue;
  *         Zinsmaier</a>
  */
 public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I extends IntegerType<I>>
-		extends NodeView<BDVNodeModel<T, L>> implements ListSelectionListener {
+		extends NodeView<BDVNodeModel<T, L>>implements ListSelectionListener {
 
 	/* A node logger */
 	static NodeLogger LOGGER = NodeLogger.getLogger(BDVNodeView.class);
@@ -113,19 +114,16 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 	/* The Table view */
 	private TableView m_tableView;
 
-	private final ExecutorService UPDATE_EXECUTOR = Executors
-			.newCachedThreadPool(new ThreadFactory() {
-				private final AtomicInteger m_counter = new AtomicInteger();
+	private final ExecutorService UPDATE_EXECUTOR = Executors.newCachedThreadPool(new ThreadFactory() {
+		private final AtomicInteger m_counter = new AtomicInteger();
 
-				@Override
-				public Thread newThread(final Runnable r) {
-					final Thread t = new Thread(r,
-							"Segment Overlay Viewer-Updater-"
-									+ m_counter.incrementAndGet());
-					t.setDaemon(true);
-					return t;
-				}
-			});
+		@Override
+		public Thread newThread(final Runnable r) {
+			final Thread t = new Thread(r, "Segment Overlay Viewer-Updater-" + m_counter.incrementAndGet());
+			t.setDaemon(true);
+			return t;
+		}
+	});
 
 	/**
 	 * Constructor
@@ -160,11 +158,9 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 	/* Initializes the table view (left side of the split pane) */
 	private void initTableView() {
 		m_tableContentView = new TableContentView();
-		m_tableContentView.getSelectionModel().setSelectionMode(
-				ListSelectionModel.SINGLE_SELECTION);
+		m_tableContentView.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		m_tableContentView.getSelectionModel().addListSelectionListener(this);
-		m_tableContentView.getColumnModel().getSelectionModel()
-				.addListSelectionListener(this);
+		m_tableContentView.getColumnModel().getSelectionModel().addListSelectionListener(this);
 		m_tableView = new TableView(m_tableContentView);
 	}
 
@@ -218,8 +214,7 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 	@Override
 	public void valueChanged(final ListSelectionEvent e) {
 
-		final int row = m_tableContentView.getSelectionModel()
-				.getLeadSelectionIndex();
+		final int row = m_tableContentView.getSelectionModel().getLeadSelectionIndex();
 
 		if ((row == m_row) || e.getValueIsAdjusting()) {
 			return;
@@ -228,17 +223,17 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 		m_row = row;
 
 		try {
-			final ImgLabelingValue<L> currentLabelingCell = (ImgLabelingValue<L>) m_tableContentView
-					.getContentModel().getValueAt(row, 1);
-			final ImgPlus<T> imgPlus = ((ImgPlusValue<T>) m_tableContentView
-					.getContentModel().getValueAt(row, 0)).getImgPlus();
+			final LabelingValue<L> currentLabelingCell = (LabelingValue<L>) m_tableContentView.getContentModel()
+					.getValueAt(row, 1);
+			final ImgPlus<T> imgPlus = ((ImgPlusValue<T>) m_tableContentView.getContentModel().getValueAt(row, 0))
+					.getImgPlus();
 
 			String imgName = imgPlus.getName();
 			String imgSource = imgPlus.getSource();
 			RandomAccessibleInterval<T> underlyingInterval = imgPlus;
 
 			// Update Labeling Mapping for Hiliting
-			ImgLabeling<L, ?> labeling = currentLabelingCell.getLabeling();
+			RandomAccessibleInterval<LabelingType<L>> labeling = currentLabelingCell.getLabeling();
 			final int width = (int) imgPlus.dimension(0);
 			final int height = (int) imgPlus.dimension(1);
 			final RandomAccessible<T> source = Views.extendZero(imgPlus);
@@ -251,8 +246,7 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 			}
 
 			final T type = imgPlus.firstElement();
-			final RealARGBConverter<T> converter = new RealARGBConverter<T>(
-					type.getMinValue(), type.getMaxValue());
+			final RealARGBConverter<T> converter = new RealARGBConverter<T>(type.getMinValue(), type.getMaxValue());
 
 			final InterpolatingSource<T, AffineTransform3D> renderSource = new InterpolatingSource<T, AffineTransform3D>(
 					source, sourceTransform, converter);
@@ -261,10 +255,9 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 
 			m_imgView = new Ui<AffineTransform3D, InteractiveDisplayCanvasComponent<AffineTransform3D>>(
 					AffineTransformType3D.instance,
-					new InteractiveDisplayCanvasComponent<AffineTransform3D>(
-							width, height, TransformEventHandler3D.factory()),
-					Defaults.rendererFactory(AffineTransformType3D.instance,
-							renderSource));
+					new InteractiveDisplayCanvasComponent<AffineTransform3D>(width, height,
+							TransformEventHandler3D.factory()),
+					Defaults.rendererFactory(AffineTransformType3D.instance, renderSource));
 
 			if (init) {
 				int tmp = m_sp.getDividerLocation();
@@ -273,7 +266,7 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 			}
 
 			// TODO INTERESSANT FUER DEN TOBIIII
-			
+
 			// add box overlay
 			final BoxOverlayRenderer box = new BoxOverlayRenderer(width, height);
 			box.setSource(imgPlus, renderSource.getSourceTransform());
@@ -296,8 +289,7 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 		}
 	}
 
-	private static double[] getcalib(
-			final AnnotatedSpace<? extends LinearAxis> calib) {
+	private static double[] getcalib(final AnnotatedSpace<? extends LinearAxis> calib) {
 		final double[] c = new double[calib.numDimensions()];
 		for (int d = 0; d < c.length; ++d)
 			c[d] = calib.axis(d).scale();

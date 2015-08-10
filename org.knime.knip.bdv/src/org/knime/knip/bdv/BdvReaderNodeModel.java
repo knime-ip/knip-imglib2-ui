@@ -3,16 +3,7 @@ package org.knime.knip.bdv;
 import java.io.File;
 import java.io.IOException;
 
-import mpicbg.spim.data.generic.sequence.BasicImgLoader;
-import mpicbg.spim.data.sequence.ViewId;
-import net.imagej.ImgPlus;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.ImgView;
-import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.RealType;
-import net.imglib2.util.Util;
-
-import org.eclipse.core.runtime.internal.adaptor.ContextFinder;
+import org.eclipse.osgi.internal.framework.ContextFinder;
 import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataColumnSpecCreator;
 import org.knime.core.data.DataTableSpec;
@@ -33,6 +24,14 @@ import org.knime.knip.base.data.img.ImgPlusCellFactory;
 
 import bdv.spimdata.SpimDataMinimal;
 import bdv.spimdata.XmlIoSpimDataMinimal;
+import mpicbg.spim.data.generic.sequence.BasicImgLoader;
+import mpicbg.spim.data.sequence.ViewId;
+import net.imagej.ImgPlus;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.ImgView;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
+import net.imglib2.util.Util;
 
 public class BdvReaderNodeModel extends NodeModel implements BufferedDataTableHolder {
 
