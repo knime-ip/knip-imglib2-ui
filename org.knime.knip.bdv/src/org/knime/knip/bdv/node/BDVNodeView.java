@@ -48,8 +48,13 @@
  */
 package org.knime.knip.bdv.node;
 
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -58,6 +63,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
@@ -67,18 +73,27 @@ import org.knime.core.node.tableview.TableContentView;
 import org.knime.core.node.tableview.TableView;
 import org.knime.knip.base.data.img.ImgPlusValue;
 import org.knime.knip.base.data.labeling.LabelingValue;
+import org.knime.knip.bdv.BDVUtil;
+import org.knime.knip.bdv.BdvPanel;
 
+import bdv.tools.InitializeViewerState;
+import bdv.tools.brightness.ConverterSetup;
+import bdv.viewer.Source;
+import bdv.viewer.SourceAndConverter;
 import net.imagej.ImgPlus;
 import net.imagej.axis.LinearAxis;
 import net.imagej.space.AnnotatedSpace;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.converter.Converter;
 import net.imglib2.converter.RealARGBConverter;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.roi.labeling.ImgLabeling;
 import net.imglib2.roi.labeling.LabelingType;
+import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.integer.IntType;
 import net.imglib2.ui.AffineTransformType3D;
 import net.imglib2.ui.InteractiveDisplayCanvasComponent;
 import net.imglib2.ui.TransformEventHandler3D;
@@ -99,8 +114,6 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 
 	/* A node logger */
 	static NodeLogger LOGGER = NodeLogger.getLogger(BDVNodeView.class);
-
-	private Ui<AffineTransform3D, InteractiveDisplayCanvasComponent<AffineTransform3D>> m_imgView = null;
 
 	/* Current row */
 	private int m_row;
@@ -124,6 +137,8 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 			return t;
 		}
 	});
+
+	private BdvPanel bdvPanel;
 
 	/**
 	 * Constructor
@@ -171,7 +186,6 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 	@Override
 	protected void modelChanged() {
 		m_tableContentView.setModel(getNodeModel().getTableContentModel());
-		m_imgView = null;
 		m_sp.setRightComponent(new JPanel());
 		m_row = -1;
 	}
@@ -186,7 +200,6 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 
 		m_tableView.removeAll();
 		m_tableContentView.removeAll();
-		m_imgView = null;
 		m_tableContentView = null;
 		m_tableView = null;
 		m_sp = null;
@@ -216,9 +229,9 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 
 		final int row = m_tableContentView.getSelectionModel().getLeadSelectionIndex();
 
-		if ((row == m_row) || e.getValueIsAdjusting()) {
-			return;
-		}
+		// if ((row == m_row) || e.getValueIsAdjusting()) {
+		// return;
+		// }
 
 		m_row = row;
 
@@ -228,71 +241,55 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 			final ImgPlus<T> imgPlus = ((ImgPlusValue<T>) m_tableContentView.getContentModel().getValueAt(row, 0))
 					.getImgPlus();
 
-			String imgName = imgPlus.getName();
-			String imgSource = imgPlus.getSource();
-			RandomAccessibleInterval<T> underlyingInterval = imgPlus;
+			final ArrayList<ConverterSetup> converterSetups = new ArrayList<ConverterSetup>();
+			final ArrayList<SourceAndConverter<?>> sources = new ArrayList<SourceAndConverter<?>>();
 
-			// Update Labeling Mapping for Hiliting
-			RandomAccessibleInterval<LabelingType<L>> labeling = currentLabelingCell.getLabeling();
-			final int width = (int) imgPlus.dimension(0);
-			final int height = (int) imgPlus.dimension(1);
-			final RandomAccessible<T> source = Views.extendZero(imgPlus);
+			int numTimePoints = BDVUtil.createSourcesAndSetups(imgPlus, imgPlus, converterSetups, sources);
 
-			final AffineTransform3D sourceTransform = new AffineTransform3D();
-			if (imgPlus.axis(0) instanceof LinearAxis) {
-				final double[] scales = getcalib((AnnotatedSpace<? extends LinearAxis>) imgPlus);
-				for (int i = 0; i < scales.length; ++i)
-					sourceTransform.set(scales[i], i, i);
+			int numTimePointLab = BDVUtil.createSourcesAndSetups(
+					((ImgLabeling<L, I>) currentLabelingCell.getLabeling()), currentLabelingCell.getLabelingMetadata(),
+					converterSetups, sources);
+
+			assert(numTimePointLab == numTimePoints);
+
+			if (bdvPanel != null) {
+				bdvPanel.stop();
+				bdvPanel = null;
 			}
 
-			final T type = imgPlus.firstElement();
-			final RealARGBConverter<T> converter = new RealARGBConverter<T>(type.getMinValue(), type.getMaxValue());
+			bdvPanel = new BdvPanel(converterSetups, sources, 800, 600, numTimePointLab);
 
-			final InterpolatingSource<T, AffineTransform3D> renderSource = new InterpolatingSource<T, AffineTransform3D>(
-					source, sourceTransform, converter);
+			bdvPanel.addComponentListener(new ComponentAdapter() {
+				boolean first = true;
 
-			boolean init = m_imgView == null;
-
-			m_imgView = new Ui<AffineTransform3D, InteractiveDisplayCanvasComponent<AffineTransform3D>>(
-					AffineTransformType3D.instance,
-					new InteractiveDisplayCanvasComponent<AffineTransform3D>(width, height,
-							TransformEventHandler3D.factory()),
-					Defaults.rendererFactory(AffineTransformType3D.instance, renderSource));
-
-			if (init) {
-				int tmp = m_sp.getDividerLocation();
-				m_sp.setRightComponent(m_imgView.canvas);
-				m_sp.setDividerLocation(tmp);
-			}
-
-			// TODO INTERESSANT FUER DEN TOBIIII
-
-			// add box overlay
-			final BoxOverlayRenderer box = new BoxOverlayRenderer(width, height);
-			box.setSource(imgPlus, renderSource.getSourceTransform());
-			m_imgView.canvas.addTransformListener(box);
-			m_imgView.canvas.addOverlayRenderer(box);
-
-			// add KeyHandler for toggling interpolation
-			m_imgView.canvas.addHandler(new KeyAdapter() {
 				@Override
-				public void keyPressed(final KeyEvent e) {
-					if (e.getKeyCode() == KeyEvent.VK_I) {
-						renderSource.switchInterpolation();
-						m_imgView.requestRepaint();
+				public void componentResized(final ComponentEvent e) {
+					if (first) {
+						SwingUtilities.invokeLater(new Runnable() {
+							@Override
+							public void run() {
+								bdvPanel.getViewer().setPreferredSize(null);
+								InitializeViewerState.initTransform(bdvPanel.getViewer());
+								InitializeViewerState.initBrightness(0.001, 0.999, bdvPanel.getViewer(),
+										bdvPanel.getSetupAssignments());
+							}
+						});
+						first = false;
 					}
+					System.out.println("componentResized done");
 				}
 			});
+			m_sp.setRightComponent(bdvPanel);
+			m_tableContentView.repaint();
+			bdvPanel.addKeybindingsTo(bdvPanel);
+		} catch (
 
-		} catch (final IndexOutOfBoundsException e2) {
+		final IndexOutOfBoundsException e2)
+
+		{
+			e2.printStackTrace();
 			return;
 		}
-	}
 
-	private static double[] getcalib(final AnnotatedSpace<? extends LinearAxis> calib) {
-		final double[] c = new double[calib.numDimensions()];
-		for (int d = 0; d < c.length; ++d)
-			c[d] = calib.axis(d).scale();
-		return c;
 	}
 }

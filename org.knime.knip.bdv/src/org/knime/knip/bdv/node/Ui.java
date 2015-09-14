@@ -36,8 +36,7 @@ class Ui<A extends AffineSet & AffineGet & Concatenable<AffineGet>, C extends JC
 	 * @param rendererFactory
 	 *            is used to create the {@link Renderer}.
 	 */
-	public Ui(final AffineTransformType<A> transformType,
-			final C interactiveDisplayCanvas,
+	public Ui(final AffineTransformType<A> transformType, final C interactiveDisplayCanvas,
 			final RendererFactory<A> rendererFactory) {
 		this.transformType = transformType;
 		painterThread = new PainterThread(this);
