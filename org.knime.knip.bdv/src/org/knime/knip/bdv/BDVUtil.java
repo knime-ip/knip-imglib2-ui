@@ -1,7 +1,6 @@
 package org.knime.knip.bdv;
 
 import java.util.List;
-import java.util.Set;
 
 import org.knime.knip.core.awt.labelingcolortable.ExtendedLabelingColorTable;
 import org.knime.knip.core.awt.labelingcolortable.LabelingColorTable;
@@ -79,8 +78,8 @@ public class BDVUtil {
 	}
 
 	public static <T extends RealType<T>> int createSourcesAndSetups(final RandomAccessibleInterval<T> rai,
-			CalibratedSpace<CalibratedAxis> space, final List<ConverterSetup> converterSetups,
-			final List<SourceAndConverter<?>> sources) {
+			final AffineTransform3D transform, CalibratedSpace<CalibratedAxis> space,
+			final List<ConverterSetup> converterSetups, final List<SourceAndConverter<?>> sources) {
 		int numTimePoints = 1;
 		int numSetups = 1;
 		int dC = space.dimensionIndex(Axes.CHANNEL);
@@ -115,14 +114,9 @@ public class BDVUtil {
 			numSetups = (int) rai.dimension(dC);
 		}
 
-		final VoxelDimensions voxelDimensions = new FinalVoxelDimensions(space.axis(dX).unit(), space.averageScale(dX),
-				space.averageScale(dY), space.averageScale(dZ));
+		final VoxelDimensions voxelDimensions = new FinalVoxelDimensions(space.axis(dX).unit(), 1, 1, 1);
 
-		final AffineTransform3D sourceTransform = new AffineTransform3D();
-		sourceTransform.set(voxelDimensions.dimension(0), 0, 0, 0, 0, voxelDimensions.dimension(1), 0, 0, 0, 0,
-				voxelDimensions.dimension(2), 0);
-
-		initSetupsRealType(rai, dC, dT, numSetups, voxelDimensions, sourceTransform, converterSetups, sources);
+		initSetupsRealType(rai, dC, dT, numSetups, voxelDimensions, transform, converterSetups, sources);
 
 		return numTimePoints;
 	}

@@ -22,5 +22,10 @@
             factory-class="org.knime.knip.bdv.node.BDVNodeFactory"
             id="org.knime.knip.bdv.node.BDVNodeFactory">
       </node>
+      <node
+            deprecated="false"
+            factory-class="org.knime.knip.bdv.withaffine.BigDataViewerNodeFactory"
+            id="org.knime.knip.bdv.withaffine.BigDataViewerNodeFactory">
+      </node>
    </extension>
 </plugin>

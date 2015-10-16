@@ -21,7 +21,8 @@ Require-Bundle: org.knime.workbench.repository;bundle-version="[3.0.0,4.0.0)",
  imagej-common;bundle-version="0.14.0",
  imglib2-ui;bundle-version="2.0.29",
  scijava-common;bundle-version="2.41.0",
- org.eclipse.osgi
+ org.eclipse.osgi,
+ org.knime.knip.mvr;bundle-version="0.9.1"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ClassPath: .,
  lib/spim_data-1.0.0-beta-7.jar,

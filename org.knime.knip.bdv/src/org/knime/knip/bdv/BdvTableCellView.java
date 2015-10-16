@@ -18,11 +18,7 @@ import org.knime.knip.base.nodes.view.TableCellView;
 import bdv.tools.InitializeViewerState;
 import bdv.tools.brightness.ConverterSetup;
 import bdv.viewer.SourceAndConverter;
-import mpicbg.spim.data.sequence.FinalVoxelDimensions;
-import mpicbg.spim.data.sequence.VoxelDimensions;
 import net.imagej.ImgPlus;
-import net.imagej.axis.Axes;
-import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.RealType;
 
 public class BdvTableCellView<T extends RealType<T>> implements TableCellView {
@@ -64,8 +60,8 @@ public class BdvTableCellView<T extends RealType<T>> implements TableCellView {
 			final ArrayList<ConverterSetup> converterSetups = new ArrayList<ConverterSetup>();
 			final ArrayList<SourceAndConverter<?>> sources = new ArrayList<SourceAndConverter<?>>();
 
-			bdvPanel = new BdvPanel(converterSetups, sources, 800, 600,
-					BDVUtil.createSourcesAndSetups(imgPlus, imgPlus, converterSetups, sources));
+//			bdvPanel = new BdvPanel(converterSetups, sources, 800, 600,
+//					BDVUtil.createSourcesAndSetups(imgPlus, imgPlus, converterSetups, sources));
 			bdvPanel.addComponentListener(new ComponentAdapter() {
 				boolean first = true;
 

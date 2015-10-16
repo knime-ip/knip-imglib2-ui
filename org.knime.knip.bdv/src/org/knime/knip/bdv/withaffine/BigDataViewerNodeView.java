@@ -46,7 +46,7 @@
  * --------------------------------------------------------------------- *
  *
  */
-package org.knime.knip.bdv.node;
+package org.knime.knip.bdv.withaffine;
 
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -68,15 +68,15 @@ import org.knime.core.node.NodeView;
 import org.knime.core.node.tableview.TableContentView;
 import org.knime.core.node.tableview.TableView;
 import org.knime.knip.base.data.img.ImgPlusValue;
-import org.knime.knip.base.data.labeling.LabelingValue;
 import org.knime.knip.bdv.BDVUtil;
 import org.knime.knip.bdv.BdvPanel;
+import org.knime.knip.mvr.cells.AffineTransformValue;
 
 import bdv.tools.InitializeViewerState;
 import bdv.tools.brightness.ConverterSetup;
 import bdv.viewer.SourceAndConverter;
 import net.imagej.ImgPlus;
-import net.imglib2.roi.labeling.ImgLabeling;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
 
@@ -87,11 +87,11 @@ import net.imglib2.type.numeric.RealType;
  * @author <a href="mailto:michael.zinsmaier@googlemail.com">Michael
  *         Zinsmaier</a>
  */
-public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I extends IntegerType<I>>
-		extends NodeView<BDVNodeModel<T, L>>implements ListSelectionListener {
+public class BigDataViewerNodeView<T extends RealType<T>, L extends Comparable<L>, I extends IntegerType<I>>
+		extends NodeView<BigDataViewerNodeModel<T, L>> implements ListSelectionListener {
 
 	/* A node logger */
-	static NodeLogger LOGGER = NodeLogger.getLogger(BDVNodeView.class);
+	static NodeLogger LOGGER = NodeLogger.getLogger(BigDataViewerNodeView.class);
 
 	/* Current row */
 	private int m_row;
@@ -116,14 +116,14 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 		}
 	});
 
-	private BdvPanel bdvPanel;
+	private BdvPanel m_bdvPanel;
 
 	/**
 	 * Constructor
 	 *
 	 * @param model
 	 */
-	public BDVNodeView(final BDVNodeModel<T, L> model) {
+	public BigDataViewerNodeView(final BigDataViewerNodeModel<T, L> model) {
 		super(model);
 		m_sp = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
 		m_row = -1;
@@ -175,13 +175,13 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 	@Override
 	protected void onClose() {
 		UPDATE_EXECUTOR.shutdownNow();
-
 		m_tableView.removeAll();
 		m_tableContentView.removeAll();
 		m_tableContentView = null;
 		m_tableView = null;
 		m_sp = null;
 		m_row = -1;
+		m_bdvPanel = null;
 	}
 
 	/**
@@ -205,39 +205,43 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 	@Override
 	public void valueChanged(final ListSelectionEvent e) {
 
-		final int row = m_tableContentView.getSelectionModel().getLeadSelectionIndex();
+		final int row = 0;
 
 		// if ((row == m_row) || e.getValueIsAdjusting()) {
 		// return;
 		// }
 
-		m_row = row;
+		m_row = 0;
 
 		try {
-			final LabelingValue<L> currentLabelingCell = (LabelingValue<L>) m_tableContentView.getContentModel()
-					.getValueAt(row, 1);
-			final ImgPlus<T> imgPlus = ((ImgPlusValue<T>) m_tableContentView.getContentModel().getValueAt(row, 0))
+			final ImgPlus<T> imgPlusA = ((ImgPlusValue<T>) m_tableContentView.getContentModel().getValueAt(row, 0))
 					.getImgPlus();
+
+			final ImgPlus<T> imgPlusB = ((ImgPlusValue<T>) m_tableContentView.getContentModel().getValueAt(row, 1))
+					.getImgPlus();
+
+			final AffineTransform3D affineA = new AffineTransform3D();
+			affineA.set(((AffineTransformValue) m_tableContentView.getContentModel().getValueAt(row, 2))
+					.getAffineTransform().getRowPackedCopy());
+
+			final AffineTransform3D affineB = new AffineTransform3D();
+			affineB.set(((AffineTransformValue) m_tableContentView.getContentModel().getValueAt(row, 3))
+					.getAffineTransform().getRowPackedCopy());
 
 			final ArrayList<ConverterSetup> converterSetups = new ArrayList<ConverterSetup>();
 			final ArrayList<SourceAndConverter<?>> sources = new ArrayList<SourceAndConverter<?>>();
 
-//			int numTimePoints = BDVUtil.createSourcesAndSetups(imgPlus, imgPlus, converterSetups, sources);
+			int numTimePoints = BDVUtil.createSourcesAndSetups(imgPlusA, affineA, imgPlusA, converterSetups, sources);
+			BDVUtil.createSourcesAndSetups(imgPlusB, affineB, imgPlusB, converterSetups, sources);
 
-			int numTimePointLab = BDVUtil.createSourcesAndSetups(
-					((ImgLabeling<L, I>) currentLabelingCell.getLabeling()), currentLabelingCell.getLabelingMetadata(),
-					converterSetups, sources);
-
-			assert(numTimePointLab == 1);
-
-			if (bdvPanel != null) {
-				bdvPanel.stop();
-				bdvPanel = null;
+			if (m_bdvPanel != null) {
+				m_bdvPanel.stop();
+				m_bdvPanel = null;
 			}
 
-			bdvPanel = new BdvPanel(converterSetups, sources, 800, 600, numTimePointLab);
+			m_bdvPanel = new BdvPanel(converterSetups, sources, 800, 600, numTimePoints);
 
-			bdvPanel.addComponentListener(new ComponentAdapter() {
+			m_bdvPanel.addComponentListener(new ComponentAdapter() {
 				boolean first = true;
 
 				@Override
@@ -246,10 +250,10 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 						SwingUtilities.invokeLater(new Runnable() {
 							@Override
 							public void run() {
-								bdvPanel.getViewer().setPreferredSize(null);
-								InitializeViewerState.initTransform(bdvPanel.getViewer());
-								InitializeViewerState.initBrightness(0.001, 0.999, bdvPanel.getViewer(),
-										bdvPanel.getSetupAssignments());
+								m_bdvPanel.getViewer().setPreferredSize(null);
+								InitializeViewerState.initTransform(m_bdvPanel.getViewer());
+								InitializeViewerState.initBrightness(0.001, 0.999, m_bdvPanel.getViewer(),
+										m_bdvPanel.getSetupAssignments());
 							}
 						});
 						first = false;
@@ -257,9 +261,9 @@ public class BDVNodeView<T extends RealType<T>, L extends Comparable<L>, I exten
 					System.out.println("componentResized done");
 				}
 			});
-			m_sp.setRightComponent(bdvPanel);
+			m_sp.setRightComponent(m_bdvPanel);
 			m_tableContentView.repaint();
-			bdvPanel.addKeybindingsTo(bdvPanel);
+			m_bdvPanel.addKeybindingsTo(m_bdvPanel);
 		} catch (
 
 		final IndexOutOfBoundsException e2)
